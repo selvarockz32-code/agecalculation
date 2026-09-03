@@ -1,69 +1,363 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+
+declare global {
+  interface Window {
+    adsbygoogle?: unknown[];
+  }
+}
+
+function AdSenseAd({ slot }: { slot: string }) {
+  const hasPushedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasPushedRef.current || typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const existingIns = document.querySelectorAll('ins.adsbygoogle');
+      const hasMatchingSlot = Array.from(existingIns).some(
+        (element) => element.getAttribute('data-ad-slot') === slot
+      );
+
+      if (hasMatchingSlot) {
+        hasPushedRef.current = true;
+        return;
+      }
+
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      hasPushedRef.current = true;
+    } catch (error) {
+      console.error('AdSense error:', error);
+    }
+  }, [slot]);
+
+  return (
+    <div className="w-full my-8">
+      <div className="text-center text-xs text-gray-400 mb-2">
+        Advertisement
+      </div>
+
+      <ins
+        className="adsbygoogle"
+        style={{
+          display: 'block',
+          minHeight: '100px',
+        }}
+        data-ad-client="ca-pub-4333070677760037"
+        data-ad-slot={slot}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+    </div>
+  );
+}
+
+function parseBirthDate(value: string): Date | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+
+  const isoMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}$/);
+  if (isoMatch) {
+    const parsed = new Date(`${trimmed}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  const separatorMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (separatorMatch) {
+    const [, first, second, yearText] = separatorMatch;
+    const day = Number(first);
+    const month = Number(second);
+    let year = Number(yearText);
+
+    if (day > 31 || month > 12) {
+      return null;
+    }
+
+    if (yearText.length === 2) {
+      year = 2000 + year;
+    }
+
+    const parsed = new Date(year, month - 1, day, 12, 0, 0);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return null;
+}
 
 export default function Home() {
+  const [birthDate, setBirthDate] = useState('');
+  const [age, setAge] = useState<{
+    years: number;
+    months: number;
+    days: number;
+  } | null>(null);
+
+  const calculateAge = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!birthDate) {
+      alert('Please enter your birth date');
+      return;
+    }
+
+    const birth = parseBirthDate(birthDate);
+    if (!birth) {
+      alert('Please enter a valid birth date (YYYY-MM-DD or DD/MM/YYYY)');
+      return;
+    }
+
+    const today = new Date();
+
+    let years = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    let days = today.getDate() - birth.getDate();
+
+    if (days < 0) {
+      months--;
+
+      const prevMonth = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        0
+      );
+
+      days += prevMonth.getDate();
+    }
+
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    setAge({
+      years,
+      months,
+      days,
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="min-h-full bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+            Welcome to Age Calculator
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="text-lg text-gray-600 mb-6">
+            The simple and accurate age calculator for everyone
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+
+        {/* =========================
+            ADVERTISEMENT 1
+        ========================== */}
+
+        <AdSenseAd slot="1234567890" />
+
+
+        {/* Calculator Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+
+          {/* Calculator Form */}
+          <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Calculate Your Age
+            </h2>
+
+            <form
+              onSubmit={calculateAge}
+              className="space-y-4"
+            >
+
+              <div>
+                <label
+                  htmlFor="birthDate"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Birth Date
+                </label>
+
+                <input
+                  id="birthDate"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/YYYY or YYYY-MM-DD"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-gray-900"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200"
+              >
+                Calculate Age
+              </button>
+
+            </form>
+          </div>
+
+
+          {/* Result Display */}
+          {age && (
+            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-lg p-6 sm:p-8 text-white">
+
+              <h2 className="text-2xl font-bold mb-6">
+                Your Age
+              </h2>
+
+              <div className="space-y-4">
+
+                {/* Years */}
+                <div className="bg-white/20 rounded-lg p-4">
+                  <div className="text-5xl font-bold">
+                    {age.years}
+                  </div>
+
+                  <div className="text-sm text-blue-100">
+                    Years
+                  </div>
+                </div>
+
+
+                {/* Months and Days */}
+                <div className="grid grid-cols-2 gap-4">
+
+                  <div className="bg-white/20 rounded-lg p-4">
+                    <div className="text-3xl font-bold">
+                      {age.months}
+                    </div>
+
+                    <div className="text-sm text-blue-100">
+                      Months
+                    </div>
+                  </div>
+
+
+                  <div className="bg-white/20 rounded-lg p-4">
+                    <div className="text-3xl font-bold">
+                      {age.days}
+                    </div>
+
+                    <div className="text-sm text-blue-100">
+                      Days
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
-      </main>
+
+
+        {/* =========================
+            ADVERTISEMENT 2
+        ========================== */}
+
+        <AdSenseAd slot="2345678901" />
+
+
+        {/* Features Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+
+          {/* Feature 1 */}
+          <div className="bg-white rounded-lg shadow p-6">
+
+            <div className="text-3xl mb-4">
+              ⚡
+            </div>
+
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Instant Results
+            </h3>
+
+            <p className="text-gray-600">
+              Get your exact age in years, months, and days instantly
+            </p>
+
+          </div>
+
+
+          {/* Feature 2 */}
+          <div className="bg-white rounded-lg shadow p-6">
+
+            <div className="text-3xl mb-4">
+              📱
+            </div>
+
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Mobile Friendly
+            </h3>
+
+            <p className="text-gray-600">
+              Works perfectly on smartphones, tablets, and desktops
+            </p>
+
+          </div>
+
+
+          {/* Feature 3 */}
+          <div className="bg-white rounded-lg shadow p-6">
+
+            <div className="text-3xl mb-4">
+              🔒
+            </div>
+
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Secure & Private
+            </h3>
+
+            <p className="text-gray-600">
+              Your data is never stored or shared with anyone
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* CTA Section */}
+        <div className="bg-blue-600 rounded-lg shadow-lg p-8 sm:p-12 text-center text-white">
+
+          <h2 className="text-3xl font-bold mb-4">
+            Ready to Calculate?
+          </h2>
+
+          <p className="text-blue-100 mb-6">
+            Scroll up to enter your birth date and find out your exact age
+          </p>
+
+          <Link
+            href="/about"
+            className="inline-block bg-white text-blue-600 hover:bg-blue-50 font-bold py-3 px-8 rounded-lg transition duration-200"
+          >
+            Learn More About Us
+          </Link>
+
+        </div>
+
+
+        {/* =========================
+            ADVERTISEMENT 3
+        ========================== */}
+
+        <AdSenseAd slot="3456789012" />
+
+      </div>
     </div>
   );
 }
