@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 declare global {
   interface Window {
@@ -13,27 +13,17 @@ function AdSenseAd({ slot }: { slot: string }) {
   const hasPushedRef = useRef(false);
 
   useEffect(() => {
-    if (hasPushedRef.current || typeof window === 'undefined') {
+    if (hasPushedRef.current) {
       return;
     }
 
     try {
-      const existingIns = document.querySelectorAll('ins.adsbygoogle');
-      const hasMatchingSlot = Array.from(existingIns).some(
-        (element) => element.getAttribute('data-ad-slot') === slot
-      );
-
-      if (hasMatchingSlot) {
-        hasPushedRef.current = true;
-        return;
-      }
-
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       hasPushedRef.current = true;
     } catch (error) {
-      console.error('AdSense error:', error);
+      console.error("AdSense error:", error);
     }
-  }, [slot]);
+  }, []);
 
   return (
     <div className="w-full my-8">
@@ -44,8 +34,8 @@ function AdSenseAd({ slot }: { slot: string }) {
       <ins
         className="adsbygoogle"
         style={{
-          display: 'block',
-          minHeight: '100px',
+          display: "block",
+          minHeight: "100px",
         }}
         data-ad-client="ca-pub-4333070677760037"
         data-ad-slot={slot}
@@ -61,57 +51,96 @@ function parseBirthDate(value: string): Date | null {
 
   const trimmed = value.trim();
 
-  const isoMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}$/);
+  // YYYY-MM-DD
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
   if (isoMatch) {
-    const parsed = new Date(`${trimmed}T12:00:00`);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const [, yearText, monthText, dayText] = isoMatch;
+
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+
+    const parsed = new Date(year, month - 1, day, 12, 0, 0);
+
+    if (
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day
+    ) {
+      return parsed;
+    }
+
+    return null;
   }
 
-  const separatorMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (separatorMatch) {
-    const [, first, second, yearText] = separatorMatch;
-    const day = Number(first);
-    const month = Number(second);
-    let year = Number(yearText);
+  // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  const separatorMatch = trimmed.match(
+    /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/
+  );
 
-    if (day > 31 || month > 12) {
-      return null;
-    }
+  if (separatorMatch) {
+    const [, dayText, monthText, yearText] = separatorMatch;
+
+    const day = Number(dayText);
+    const month = Number(monthText);
+
+    let year = Number(yearText);
 
     if (yearText.length === 2) {
       year = 2000 + year;
     }
 
+    if (day < 1 || day > 31 || month < 1 || month > 12) {
+      return null;
+    }
+
     const parsed = new Date(year, month - 1, day, 12, 0, 0);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
+
+    if (
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day
+    ) {
+      return parsed;
+    }
   }
 
   return null;
 }
 
 export default function Home() {
-  const [birthDate, setBirthDate] = useState('');
+  const [birthDate, setBirthDate] = useState("");
+
   const [age, setAge] = useState<{
     years: number;
     months: number;
     days: number;
   } | null>(null);
 
-  const calculateAge = (e: React.FormEvent) => {
+  const calculateAge = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!birthDate) {
-      alert('Please enter your birth date');
+      alert("Please enter your birth date");
       return;
     }
 
     const birth = parseBirthDate(birthDate);
+
     if (!birth) {
-      alert('Please enter a valid birth date (YYYY-MM-DD or DD/MM/YYYY)');
+      alert(
+        "Please enter a valid birth date (YYYY-MM-DD or DD/MM/YYYY)"
+      );
       return;
     }
 
     const today = new Date();
+
+    if (birth > today) {
+      alert("Birth date cannot be in the future");
+      return;
+    }
 
     let years = today.getFullYear() - birth.getFullYear();
     let months = today.getMonth() - birth.getMonth();
@@ -120,13 +149,13 @@ export default function Home() {
     if (days < 0) {
       months--;
 
-      const prevMonth = new Date(
+      const previousMonth = new Date(
         today.getFullYear(),
         today.getMonth(),
         0
       );
 
-      days += prevMonth.getDate();
+      days += previousMonth.getDate();
     }
 
     if (months < 0) {
@@ -156,20 +185,14 @@ export default function Home() {
           </p>
         </div>
 
-
-        {/* =========================
-            ADVERTISEMENT 1
-        ========================== */}
-
+        {/* Advertisement 1 */}
         <AdSenseAd slot="1234567890" />
-
 
         {/* Calculator Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
 
           {/* Calculator Form */}
           <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
-
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Calculate Your Age
             </h2>
@@ -178,7 +201,6 @@ export default function Home() {
               onSubmit={calculateAge}
               className="space-y-4"
             >
-
               <div>
                 <label
                   htmlFor="birthDate"
@@ -204,10 +226,8 @@ export default function Home() {
               >
                 Calculate Age
               </button>
-
             </form>
           </div>
-
 
           {/* Result Display */}
           {age && (
@@ -230,7 +250,6 @@ export default function Home() {
                   </div>
                 </div>
 
-
                 {/* Months and Days */}
                 <div className="grid grid-cols-2 gap-4">
 
@@ -244,7 +263,6 @@ export default function Home() {
                     </div>
                   </div>
 
-
                   <div className="bg-white/20 rounded-lg p-4">
                     <div className="text-3xl font-bold">
                       {age.days}
@@ -256,27 +274,19 @@ export default function Home() {
                   </div>
 
                 </div>
-
               </div>
             </div>
           )}
-
         </div>
 
-
-        {/* =========================
-            ADVERTISEMENT 2
-        ========================== */}
-
+        {/* Advertisement 2 */}
         <AdSenseAd slot="2345678901" />
-
 
         {/* Features Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
 
           {/* Feature 1 */}
           <div className="bg-white rounded-lg shadow p-6">
-
             <div className="text-3xl mb-4">
               ⚡
             </div>
@@ -288,13 +298,10 @@ export default function Home() {
             <p className="text-gray-600">
               Get your exact age in years, months, and days instantly
             </p>
-
           </div>
-
 
           {/* Feature 2 */}
           <div className="bg-white rounded-lg shadow p-6">
-
             <div className="text-3xl mb-4">
               📱
             </div>
@@ -306,13 +313,10 @@ export default function Home() {
             <p className="text-gray-600">
               Works perfectly on smartphones, tablets, and desktops
             </p>
-
           </div>
-
 
           {/* Feature 3 */}
           <div className="bg-white rounded-lg shadow p-6">
-
             <div className="text-3xl mb-4">
               🔒
             </div>
@@ -324,11 +328,9 @@ export default function Home() {
             <p className="text-gray-600">
               Your data is never stored or shared with anyone
             </p>
-
           </div>
 
         </div>
-
 
         {/* CTA Section */}
         <div className="bg-blue-600 rounded-lg shadow-lg p-8 sm:p-12 text-center text-white">
@@ -350,11 +352,7 @@ export default function Home() {
 
         </div>
 
-
-        {/* =========================
-            ADVERTISEMENT 3
-        ========================== */}
-
+        {/* Advertisement 3 */}
         <AdSenseAd slot="3456789012" />
 
       </div>
